@@ -1,0 +1,33 @@
+# ============================================================
+# SpatialAST - Requirements
+# ============================================================
+# Phase 0-2 (core + data + compiler): CPU-only, no GPU needed
+# Phase 3+  (model + training):       GPU required (4×H100)
+# ============================================================
+
+# ── Phase 0-2: Core / Data / Compiler ──────────────────────
+# These run on any machine (local dev, CI, etc.)
+
+pyarrow>=15.0                # Arrow/Parquet dataset I/O
+pytest>=7.0                  # Unit testing
+hypothesis>=6.0              # Property-based testing (optional)
+
+# ── Phase 3+: Model / Diffusion / Training ─────────────────
+# Install these on the remote GPU platform only.
+# Pin CUDA build to match your driver (CUDA 12.1+).
+
+torch>=2.2                   # PyTorch (install with CUDA: pip install torch --index-url https://download.pytorch.org/whl/cu121)
+# flash-attn>=2.5              # FlashAttention-2 (pip install flash-attn --no-build-isolation)
+# mamba-ssm>=1.2.0             # Mamba selective state space model
+# causal-conv1d>=1.1.0         # Required by mamba-ssm
+
+# ── Training Infrastructure ────────────────────────────────
+
+hydra-core>=1.3              # Config management
+omegaconf>=2.3               # Hierarchical configs
+wandb>=0.16                  # Experiment tracking (W&B)
+
+# ── Data & Utilities ───────────────────────────────────────
+
+datasets>=2.16               # HuggingFace Datasets (optional, for data loading)
+tqdm>=4.60                   # Progress bars
