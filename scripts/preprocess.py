@@ -11,8 +11,7 @@ Usage::
         --json_dir data/raw/cad_json \
         --split_file data/raw/data/train_val_test_split.json \
         --out_dir data/processed \
-        --workers 8 \
-        --max_seq_len 512
+        --workers 8
 """
 
 from __future__ import annotations
@@ -80,10 +79,14 @@ class ProcessResult:
 def process_one(
     json_path: str,
     file_id: str,
-    max_seq_len: int,
     check_roundtrip: bool,
 ) -> ProcessResult:
-    """Process a single DeepCAD JSON file through the full pipeline."""
+    """Process a single DeepCAD JSON file through the full pipeline.
+
+    Sequences are stored at their natural length (no truncation, no padding).
+    Dynamic padding to uniform length within a batch is deferred to the
+    DataLoader at training time.
+    """
     result = ProcessResult(file_id=file_id)
 
     try:
@@ -107,13 +110,9 @@ def process_one(
             result.reject_reason = f"validation:{val_result.errors[0]}"
             return result
 
-        # 4. Serialize → tokens
-        serializer = ASTSerializer(max_seq_len=max_seq_len)
+        # 4. Serialize → tokens (no padding, natural length)
+        serializer = ASTSerializer(max_seq_len=None)
         tokens, metas = serializer.serialize(ast, pad=False)
-
-        if len(tokens) > max_seq_len:
-            result.reject_reason = f"seq_too_long:{len(tokens)}"
-            return result
 
         # 5. Round-trip check: AST → IR → commands → decompile → AST
         if check_roundtrip:
@@ -131,11 +130,11 @@ def process_one(
                 result.reject_reason = "roundtrip_error"
                 return result
 
-        # 6. Annotate with metadata
+        # 6. Annotate with metadata (variable-length, no padding)
         reset_id_counter()
         NodeRegistry.reset()
         ast2 = decompiler.decompile(commands)
-        annotator = MetaAnnotator(max_seq_len=max_seq_len)
+        annotator = MetaAnnotator(max_seq_len=None)
         sample = annotator.annotate(ast2)
 
         result.success = True
@@ -220,7 +219,6 @@ def run_pipeline(
     split_file: str,
     out_dir: str,
     workers: int,
-    max_seq_len: int,
     check_roundtrip: bool,
     limit: int = 0,
 ) -> None:
@@ -257,7 +255,7 @@ def run_pipeline(
 
         if workers <= 1:
             for json_path, fid in tasks:
-                r = process_one(json_path, fid, max_seq_len, check_roundtrip)
+                r = process_one(json_path, fid, check_roundtrip)
                 results.append(r)
                 if r.success:
                     stats.seq_lengths.append(r.seq_len)
@@ -270,7 +268,7 @@ def run_pipeline(
             with ProcessPoolExecutor(max_workers=workers) as pool:
                 for json_path, fid in tasks:
                     fut = pool.submit(
-                        process_one, json_path, fid, max_seq_len, check_roundtrip,
+                        process_one, json_path, fid, check_roundtrip,
                     )
                     futures[fut] = fid
 
@@ -336,8 +334,6 @@ def main():
                         help="Output directory for Arrow/Parquet files")
     parser.add_argument("--workers", type=int, default=8,
                         help="Number of parallel workers")
-    parser.add_argument("--max_seq_len", type=int, default=512,
-                        help="Maximum token sequence length")
     parser.add_argument("--no_roundtrip", action="store_true",
                         help="Skip round-trip consistency check")
     parser.add_argument("--limit", type=int, default=0,
@@ -349,7 +345,6 @@ def main():
         split_file=args.split_file,
         out_dir=args.out_dir,
         workers=args.workers,
-        max_seq_len=args.max_seq_len,
         check_roundtrip=not args.no_roundtrip,
         limit=args.limit,
     )

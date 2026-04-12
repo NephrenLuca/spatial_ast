@@ -16,7 +16,7 @@ from core.tokenizer import (
     encode_enum,
     is_q8_token,
 )
-from core.serializer import ASTSerializer, MAX_SEQ_LEN
+from core.serializer import ASTSerializer
 
 from tests.helpers import (
     build_arc_sketch_solid,

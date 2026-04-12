@@ -43,14 +43,19 @@ class MetaAnnotator:
     Combines ``ASTSerializer.serialize`` (which already generates
     ``TokenMeta``) with geometry descriptor extraction to build
     every auxiliary array the model needs.
+
+    When ``max_seq_len`` is None (default), sequences are stored at
+    their natural length with no padding — the DataLoader handles
+    dynamic padding per batch.
     """
 
-    def __init__(self, max_seq_len: int = 512) -> None:
+    def __init__(self, max_seq_len: int | None = None) -> None:
         self._serializer = ASTSerializer(max_seq_len=max_seq_len)
         self._max_seq_len = max_seq_len
 
     def annotate(self, root: ASTNode) -> AnnotatedSample:
-        tokens, metas = self._serializer.serialize(root, pad=True)
+        pad = self._max_seq_len is not None
+        tokens, metas = self._serializer.serialize(root, pad=pad)
 
         # Build node-level geometry descriptors indexed by DFS order
         node_geom = {id(n): extract_geometry_descriptor(n) for n in root.dfs()}

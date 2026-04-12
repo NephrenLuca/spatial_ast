@@ -451,9 +451,12 @@ AST 树:
 | P95 序列长度 | ~280 tokens |
 | P99 序列长度 | ~450 tokens |
 | 最大序列长度 | ~800 tokens |
-| **设计上限** | **`MAX_SEQ_LEN = 512`** (覆盖 >99% 样本) |
+| **设计策略** | **可变长度 + 动态 padding** (保留全部样本) |
 
-超长序列处理策略：截断最深层细节（保留 L0-L3 结构，L4-L5 截断后补 `[NIL]`）。
+序列长度不设硬上限。预处理阶段保留所有样本的自然长度序列（含 >512 的复杂 CAD 模型），
+训练时由 DataLoader 按 batch 内最长序列动态 padding，并结合 bucket batching
+将长度相近的样本分组以减少 padding 浪费。Mamba 的 O(n) 复杂度使长序列训练可行，
+而 FlashAttention 的 O(n²) 部分在 n≈800 时仍在 H100 的可承受范围内。
 
 ### 4.4 序列化/反序列化伪代码
 
@@ -1148,7 +1151,7 @@ class SpatialASTDenoiser(nn.Module):
 class ModelConfig:
     # Vocabulary
     vocab_size: int = 304
-    max_seq_len: int = 512
+    max_seq_len: int = None  # 可变长度; DataLoader 动态 padding
 
     # Embedding (v2.0: 新增 parent/sibling/geom)
     d_model: int = 768
@@ -1563,20 +1566,20 @@ class DeepCADDecompiler:
 
 ```python
 class SpatialASTDataset(Dataset):
-    def __init__(self, data_path: str, max_seq_len: int = 512):
+    """可变长度 dataset; padding 由 collate_fn 在 batch 维度动态完成."""
+    def __init__(self, data_path: str):
         self.samples = self._load_and_validate(data_path)
-        self.max_seq_len = max_seq_len
 
     def __getitem__(self, idx) -> Dict[str, Tensor]:
         sample = self.samples[idx]
-        L = self.max_seq_len
-        tokens   = self._pad(sample["tokens"], L, pad_id=TOKEN_PAD)
-        depths   = self._pad(sample["depths"], L, pad_id=0)
-        types    = self._pad(sample["types"], L, pad_id=0)
-        roles    = self._pad(sample["roles"], L, pad_id=0)
-        parents  = self._pad(sample["parents"], L, pad_id=0)    # [NEW]
-        siblings = self._pad(sample["siblings"], L, pad_id=0)   # [NEW]
-        geom     = self._pad_float(sample["geom_desc"], L, dim=4)  # [NEW] [L, 4]
+        # 返回自然长度 tensor, 由 collate_fn 按 batch 内最长序列 padding
+        tokens   = sample["tokens"]     # variable length
+        depths   = sample["depths"]
+        types    = sample["types"]
+        roles    = sample["roles"]
+        parents  = sample["parents"]
+        siblings = sample["siblings"]
+        geom     = sample["geom_desc"]  # [L_i, 4]
 
         return {
             "token_ids":    torch.tensor(tokens, dtype=torch.long),

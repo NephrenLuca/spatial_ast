@@ -367,9 +367,11 @@ DeepCAD 原始数据 (178k JSON)
 │   6. 保存为 Arrow 格式    │
 │                           │
 │ 过滤:                     │
-│   - 序列长度 > 512 → 丢弃 │
 │   - validate 失败 → 丢弃  │
 │   - 编译往返不一致 → 丢弃 │
+│   (不再丢弃长序列;         │
+│    序列按自然长度存储,      │
+│    DataLoader 动态 padding) │
 │                           │
 │ 产出:                     │
 │   data/processed/          │
@@ -423,7 +425,12 @@ Week 3                      Week 4                      Week 5
 └── ffn.py
 ```
 
-### 7.2 各模块显存预算 (单卡, batch=32, seq=512, d_model=768, bf16)
+### 7.2 各模块显存预算 (单卡, batch=32, seq≈512 (动态 padding), d_model=768, bf16)
+
+> **注意**：序列长度不再有硬上限。预处理阶段保留所有序列（含 >512 的长序列），
+> DataLoader 按 batch 内最长序列动态 padding。下表以 seq≈512 为典型估算；
+> 对于偶尔出现的更长 batch (P99≈800+)，可通过 gradient accumulation 或
+> bucket batching 控制显存峰值。
 
 | 模块 | 参数显存 | 激活显存 | 合计 |
 |------|---------|---------|------|

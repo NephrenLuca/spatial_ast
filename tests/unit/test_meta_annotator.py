@@ -25,7 +25,7 @@ def _reset():
 
 class TestAnnotatedSampleShape:
 
-    def test_all_arrays_same_length(self):
+    def test_all_arrays_same_length_with_padding(self):
         ast = build_rectangle_solid()
         sample = MetaAnnotator(max_seq_len=256).annotate(ast)
         L = 256
@@ -37,9 +37,29 @@ class TestAnnotatedSampleShape:
         assert len(sample.siblings) == L
         assert len(sample.geom_desc) == L
 
+    def test_variable_length_no_padding(self):
+        ast = build_rectangle_solid()
+        sample = MetaAnnotator(max_seq_len=None).annotate(ast)
+        L = sample.seq_len
+        assert L > 0
+        assert len(sample.tokens) == L
+        assert len(sample.depths) == L
+        assert len(sample.types) == L
+        assert len(sample.roles) == L
+        assert len(sample.parents) == L
+        assert len(sample.siblings) == L
+        assert len(sample.geom_desc) == L
+        assert TOKEN_PAD not in sample.tokens
+
+    def test_default_is_variable_length(self):
+        ast = build_rectangle_solid()
+        sample = MetaAnnotator().annotate(ast)
+        assert TOKEN_PAD not in sample.tokens
+        assert len(sample.tokens) == sample.seq_len
+
     def test_geom_desc_dim(self):
         ast = build_rectangle_solid()
-        sample = MetaAnnotator(max_seq_len=128).annotate(ast)
+        sample = MetaAnnotator().annotate(ast)
         for gd in sample.geom_desc:
             assert len(gd) == 4
 
@@ -91,7 +111,7 @@ class TestDifferentFixtures:
         ast = build_circle_solid()
         sample = MetaAnnotator().annotate(ast)
         assert sample.seq_len > 0
-        assert len(sample.tokens) == 512
+        assert len(sample.tokens) == sample.seq_len
 
     def test_multi_solid(self):
         ast = build_multi_solid()
@@ -106,7 +126,7 @@ class TestDifferentFixtures:
 
 class TestAnnotatorConsistency:
 
-    def test_tokens_match_serializer(self):
+    def test_tokens_match_serializer_padded(self):
         from core.serializer import ASTSerializer
         ast = build_rectangle_solid()
         ann = MetaAnnotator(max_seq_len=256)
@@ -114,5 +134,16 @@ class TestAnnotatorConsistency:
 
         ser = ASTSerializer(max_seq_len=256)
         tokens, _ = ser.serialize(ast, pad=True)
+
+        assert sample.tokens == tokens
+
+    def test_tokens_match_serializer_variable(self):
+        from core.serializer import ASTSerializer
+        ast = build_rectangle_solid()
+        ann = MetaAnnotator(max_seq_len=None)
+        sample = ann.annotate(ast)
+
+        ser = ASTSerializer(max_seq_len=None)
+        tokens, _ = ser.serialize(ast, pad=False)
 
         assert sample.tokens == tokens

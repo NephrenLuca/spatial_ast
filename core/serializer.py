@@ -32,21 +32,25 @@ from core.tokenizer import (
     is_enum_token,
 )
 
-MAX_SEQ_LEN = 512
+MAX_SEQ_LEN = None  # No hard limit; padding is handled by the DataLoader
 
 
 class ASTSerializer:
     """
     Bidirectional serialiser: ``ASTNode ↔ List[int]``.
 
-    ``serialize``  : ASTNode → token list (with BOS/EOS/padding)
+    ``serialize``  : ASTNode → token list (with BOS/EOS and optional padding)
     ``deserialize``: token list → ASTNode
 
     Both methods also track token-level metadata (depth, type, role,
     parent type, sibling index) needed by the embedding layer.
+
+    When ``max_seq_len`` is None (default), sequences are stored at their
+    natural length — padding to uniform length is deferred to the
+    DataLoader via dynamic (bucket) padding.
     """
 
-    def __init__(self, max_seq_len: int = MAX_SEQ_LEN) -> None:
+    def __init__(self, max_seq_len: int | None = MAX_SEQ_LEN) -> None:
         self.max_seq_len = max_seq_len
 
     # ── Serialize ───────────────────────────────────────────────────
@@ -247,7 +251,9 @@ class ASTSerializer:
         tokens: List[int],
         metas: List[TokenMeta],
     ) -> Tuple[List[int], List[TokenMeta]]:
-        """Pad or truncate to ``self.max_seq_len``."""
+        """Pad to ``self.max_seq_len`` if set, otherwise return as-is."""
+        if self.max_seq_len is None:
+            return tokens, metas
         if len(tokens) > self.max_seq_len:
             tokens = tokens[: self.max_seq_len - 1] + [TOKEN_EOS]
             metas = metas[: self.max_seq_len]
