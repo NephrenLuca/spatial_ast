@@ -43,13 +43,12 @@ class ModelConfig:
     time_embed_dim: int = 512
 
     # ── Condition encoder ─────────────────────────────────────────
-    text_encoder_name: str = "google/flan-t5-base"
-    image_encoder_name: str = "facebook/convnext-base-224"
+    use_real_encoder: bool = False  # True → load pretrained T5 + ConvNeXt
+    text_encoder_name: str = "model/pretrained/flan-t5-base"
+    image_encoder_name: str = "model/pretrained/convnext-base-224"
     freeze_text_encoder: bool = True
     freeze_image_encoder: bool = True
-    cond_text_dim: int = 768      # stub text encoder output dim
-    cond_image_dim: int = 768     # stub image encoder output dim
-    cond_seq_len: int = 16        # stub condition sequence length
+    cond_seq_len: int = 16        # stub image encoder output seq length
 
     @classmethod
     def small(cls) -> ModelConfig:
@@ -63,7 +62,5 @@ class ModelConfig:
             mamba_expand=2,
             time_embed_dim=64,
             embed_dropout=0.0,
-            cond_text_dim=64,
-            cond_image_dim=64,
             cond_seq_len=4,
         )

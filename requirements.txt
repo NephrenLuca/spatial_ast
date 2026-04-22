@@ -20,6 +20,7 @@ torch>=2.2                   # PyTorch (install with CUDA: pip install torch --i
 # flash-attn>=2.5              # FlashAttention-2 (pip install flash-attn --no-build-isolation)
 # mamba-ssm>=1.2.0             # Mamba selective state space model
 # causal-conv1d>=1.1.0         # Required by mamba-ssm
+transformers>=4.40             # Pretrained T5 + ConvNeXt condition encoders
 
 # ── Training Infrastructure ────────────────────────────────
 
