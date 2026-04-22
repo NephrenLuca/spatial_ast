@@ -83,11 +83,11 @@ class MultiHeadAttention(nn.Module):
         return self.out_proj(out)
 
     def _apply_rope(self, x: Tensor) -> Tensor:
-        """Apply RoPE per head: x is [B, H, L, D_h]."""
+        """Apply RoPE independently per head: x is [B, H, L, D_h]."""
         B, H, L, D = x.shape
-        x = x.transpose(1, 2).reshape(B, L, H * D)   # [B, L, H*D]
+        x = x.reshape(B * H, L, D)      # treat each head as a batch item
         x = self.rope(x)
-        return x.view(B, L, H, D).transpose(1, 2)
+        return x.view(B, H, L, D)
 
 
 class MultiHeadCrossAttention(nn.Module):
