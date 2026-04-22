@@ -49,8 +49,6 @@ class GeometryConditionedMamba(nn.Module):
         super().__init__()
         _require_mamba()
 
-        d_inner = d_model * expand
-
         # Geometry -> SSM kernel modulation:  A_mod, B_mod, C_mod, G_mod
         self.geom_to_kernels = nn.Sequential(
             nn.Linear(geom_dim, d_state * 2),
@@ -71,7 +69,7 @@ class GeometryConditionedMamba(nn.Module):
             expand=expand,
         )
 
-        self.merge = nn.Linear(2 * d_inner, d_model)
+        self.merge = nn.Linear(2 * d_model, d_model)
         self.norm = nn.LayerNorm(d_model)
         self.residual_gate = nn.Linear(geom_dim, d_model)
 
