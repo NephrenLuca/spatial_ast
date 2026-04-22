@@ -328,7 +328,7 @@ def main():
     parser = argparse.ArgumentParser(description="Preprocess DeepCAD dataset")
     parser.add_argument("--json_dir", default="data/raw/cad_json",
                         help="Directory containing DeepCAD JSON files")
-    parser.add_argument("--split_file", default="data/raw/data/train_val_test_split.json",
+    parser.add_argument("--split_file", default="data/raw/train_val_test_split.json",
                         help="Path to train/val/test split JSON")
     parser.add_argument("--out_dir", default="data/processed",
                         help="Output directory for Arrow/Parquet files")
