@@ -71,6 +71,7 @@ class GeometryConditionedMamba(nn.Module):
 
         self.merge = nn.Linear(2 * d_model, d_model)
         self.norm = nn.LayerNorm(d_model)
+        self.c_gate_proj = nn.Linear(d_state, d_model)
         self.residual_gate = nn.Linear(geom_dim, d_model)
 
     def forward(self, x: Tensor, geom_desc: Tensor) -> Tensor:
@@ -90,6 +91,6 @@ class GeometryConditionedMamba(nn.Module):
         merged = self.merge(torch.cat([fwd, bwd], dim=-1))
 
         gate = torch.sigmoid(self.residual_gate(geom_desc))
-        c_gate = torch.sigmoid(C_mod[..., : merged.shape[-1]])
+        c_gate = torch.sigmoid(self.c_gate_proj(C_mod))
 
         return self.norm(merged * c_gate + gate * x)
