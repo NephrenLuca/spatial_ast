@@ -37,7 +37,9 @@ class T5EncoderWrapper(nn.Module):
         super().__init__()
         from transformers import T5EncoderModel
 
-        self.encoder = T5EncoderModel.from_pretrained(model_name)
+        self.encoder = T5EncoderModel.from_pretrained(
+            model_name, use_safetensors=True,
+        )
         if freeze:
             for p in self.encoder.parameters():
                 p.requires_grad = False
@@ -59,7 +61,9 @@ class ConvNextEncoderWrapper(nn.Module):
         super().__init__()
         from transformers import ConvNextModel
 
-        self.encoder = ConvNextModel.from_pretrained(model_name)
+        self.encoder = ConvNextModel.from_pretrained(
+            model_name, use_safetensors=True,
+        )
         if freeze:
             for p in self.encoder.parameters():
                 p.requires_grad = False
