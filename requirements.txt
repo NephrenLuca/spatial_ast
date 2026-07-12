@@ -17,18 +17,18 @@ hypothesis>=6.0              # Property-based testing (optional)
 # Pin CUDA build to match your driver (CUDA 12.1+).
 
 torch>=2.2                   # PyTorch (install with CUDA: pip install torch --index-url https://download.pytorch.org/whl/cu121)
-# flash-attn>=2.5              # FlashAttention-2 (pip install flash-attn --no-build-isolation)
-# mamba-ssm>=1.2.0             # Mamba selective state space model
-# causal-conv1d>=1.1.0         # Required by mamba-ssm
-transformers>=4.40             # Pretrained T5 + ConvNeXt condition encoders
+numpy>=1.24                  # Arrays / seeding
+mamba-ssm>=1.2.0             # Mamba selective state space model (GPU; --no-build-isolation)
+causal-conv1d>=1.1.0         # Required by mamba-ssm (GPU)
+# flash-attn>=2.5             # Optional: FlashAttention-2 (code uses torch SDPA otherwise)
+transformers>=4.40           # Frozen Flan-T5 text encoder (real-encoder mode)
+sentencepiece>=0.1.99        # Tokenizer backend for T5
 
 # ── Training Infrastructure ────────────────────────────────
 
-hydra-core>=1.3              # Config management
-omegaconf>=2.3               # Hierarchical configs
-wandb>=0.16                  # Experiment tracking (W&B)
+omegaconf>=2.3               # YAML experiment configs + CLI overrides
+wandb>=0.16                  # Experiment tracking (W&B, optional)
 
 # ── Data & Utilities ───────────────────────────────────────
 
-datasets>=2.16               # HuggingFace Datasets (optional, for data loading)
 tqdm>=4.60                   # Progress bars

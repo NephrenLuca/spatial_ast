@@ -43,9 +43,12 @@ class ModelConfig:
     time_embed_dim: int = 512
 
     # ── Condition encoder ─────────────────────────────────────────
-    use_real_encoder: bool = False  # True → load pretrained T5 + ConvNeXt
+    use_real_encoder: bool = False  # True → load pretrained T5 (+ ConvNeXt)
+    use_text: bool = True         # build/use the text condition branch
+    use_image: bool = True        # build/use the image condition branch
     text_encoder_name: str = "model/pretrained/flan-t5-base"
     image_encoder_name: str = "model/pretrained/convnext-base-224"
+    text_vocab_size: int = 32128  # T5 vocab (used by the stub text encoder)
     freeze_text_encoder: bool = True
     freeze_image_encoder: bool = True
     cond_seq_len: int = 16        # stub image encoder output seq length

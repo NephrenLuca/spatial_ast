@@ -1,0 +1,47 @@
+# ══════════════════════════════════════════════════════════════════════
+# Debug config: tiny model + few steps for a quick single-GPU sanity run.
+#   python scripts/train.py --config configs/debug.yaml
+# Uses the stub text encoder so no pretrained weights are required.
+# ══════════════════════════════════════════════════════════════════════
+
+model:
+  d_model: 128
+  num_blocks: 2
+  head_dim: 32
+  d_ff: 512
+  cross_attn_heads: 2
+  mamba_expand: 2
+  time_embed_dim: 128
+  embed_dropout: 0.0
+  use_text: true
+  use_image: false
+  use_real_encoder: false
+
+diffusion:
+  T: 1000
+  corruption_modes: [mask, resample]
+
+loss: {}
+
+train:
+  run_name: debug
+  output_dir: outputs
+  train_path: data/processed/train.parquet
+  val_path: data/processed/val.parquet
+  text_annotations: null
+  max_train_samples: 256
+  max_val_samples: 64
+  num_workers: 0
+  lr: 3.0e-4
+  warmup_steps: 20
+  max_steps: 200
+  per_gpu_batch_size: 4
+  accumulation_steps: 1
+  precision: bf16
+  log_every: 10
+  eval_every: 100
+  save_every: 100
+  keep_last_k: 1
+  wandb: false
+  eval_num_samples: 8
+  eval_sample_steps: 10

@@ -127,21 +127,39 @@ class ConditionEncoder(nn.Module):
     def __init__(self, config: ModelConfig) -> None:
         super().__init__()
         d = config.d_model
+        self.use_text = config.use_text
+        self.use_image = config.use_image
+
+        if not (self.use_text or self.use_image):
+            raise ValueError(
+                "ConditionEncoder needs at least one of use_text / use_image"
+            )
+
+        self.text_encoder: nn.Module | None = None
+        self.image_encoder: nn.Module | None = None
 
         if config.use_real_encoder:
-            self.text_encoder = T5EncoderWrapper(
-                model_name=config.text_encoder_name,
-                freeze=config.freeze_text_encoder,
-                proj_dim=d,
-            )
-            self.image_encoder = ConvNextEncoderWrapper(
-                model_name=config.image_encoder_name,
-                freeze=config.freeze_image_encoder,
-                proj_dim=d,
-            )
+            if self.use_text:
+                self.text_encoder = T5EncoderWrapper(
+                    model_name=config.text_encoder_name,
+                    freeze=config.freeze_text_encoder,
+                    proj_dim=d,
+                )
+            if self.use_image:
+                self.image_encoder = ConvNextEncoderWrapper(
+                    model_name=config.image_encoder_name,
+                    freeze=config.freeze_image_encoder,
+                    proj_dim=d,
+                )
         else:
-            self.text_encoder = StubTextEncoder(vocab_size=32128, d_model=d)
-            self.image_encoder = StubImageEncoder(d_model=d, seq_len=config.cond_seq_len)
+            if self.use_text:
+                self.text_encoder = StubTextEncoder(
+                    vocab_size=config.text_vocab_size, d_model=d
+                )
+            if self.use_image:
+                self.image_encoder = StubImageEncoder(
+                    d_model=d, seq_len=config.cond_seq_len
+                )
 
         self.modality_embed = nn.Embedding(2, d)  # 0 = text, 1 = image
         self.fuse = nn.Linear(d, d)
@@ -157,7 +175,7 @@ class ConditionEncoder(nn.Module):
         """
         features: list[Tensor] = []
 
-        if text_tokens is not None:
+        if text_tokens is not None and self.text_encoder is not None:
             t_feat = self.text_encoder(text_tokens)
             mod_ids = torch.zeros(
                 t_feat.shape[:2], dtype=torch.long, device=t_feat.device
@@ -165,7 +183,7 @@ class ConditionEncoder(nn.Module):
             t_feat = t_feat + self.modality_embed(mod_ids)
             features.append(t_feat)
 
-        if image is not None:
+        if image is not None and self.image_encoder is not None:
             i_feat = self.image_encoder(image)
             mod_ids = torch.ones(
                 i_feat.shape[:2], dtype=torch.long, device=i_feat.device
